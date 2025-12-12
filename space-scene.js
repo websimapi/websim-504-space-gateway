@@ -150,6 +150,54 @@ export function initSpaceScene(containerId) {
     return new THREE.CanvasTexture(canvas);
   }
 
+  // Generate a rocky moon/planet texture
+  function createMoonTexture(seed) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    
+    // Base surface color
+    const isRocky = seed > 0.5;
+    const baseColor = isRocky ? '#707075' : '#8a7a6a'; // Grey vs Brownish
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(0, 0, 1024, 512);
+    
+    // Noise layers
+    for(let i=0; i<10000; i++) {
+        const x = Math.random() * 1024;
+        const y = Math.random() * 512;
+        const alpha = Math.random() * 0.15;
+        ctx.fillStyle = Math.random() > 0.5 ? `rgba(0,0,0,${alpha})` : `rgba(255,255,255,${alpha * 0.5})`;
+        ctx.fillRect(x, y, 2, 2);
+    }
+
+    // Craters and features
+    for(let i=0; i<80; i++) {
+        const x = Math.random() * 1024;
+        const y = Math.random() * 512;
+        const r = Math.random() * 20 + 5;
+        
+        // Crater base
+        const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+        grad.addColorStop(0, 'rgba(0,0,0,0.4)');
+        grad.addColorStop(0.8, 'rgba(0,0,0,0.1)');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI*2);
+        ctx.fill();
+        
+        // Crater Rim (simple bump effect)
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.stroke();
+    }
+    
+    return new THREE.CanvasTexture(canvas);
+  }
+
   // --- Object Creation Classes ---
 
   class Starfield {
@@ -270,25 +318,38 @@ export function initSpaceScene(containerId) {
   }
 
   class Moon {
-    constructor(radius, distance, speed, color, offset) {
-      const geometry = new THREE.SphereGeometry(radius, 32, 32);
+    constructor(radius, distance, speed, typeOffset) {
+      const geometry = new THREE.SphereGeometry(radius, 64, 64);
+      const texture = createMoonTexture(typeOffset);
+      
       const material = new THREE.MeshStandardMaterial({
-        color: color,
-        roughness: 0.4,
-        metalness: 0.6
+        map: texture,
+        bumpMap: texture,
+        bumpScale: 0.05,
+        roughness: 0.7,
+        metalness: 0.2
       });
+      
       this.mesh = new THREE.Mesh(geometry, material);
       this.distance = distance;
       this.speed = speed;
-      this.offset = offset;
+      
+      // Start at random position in orbit
+      this.angleOffset = Math.random() * Math.PI * 2;
+      // Slight orbital inclination
+      this.inclination = (Math.random() - 0.5) * 0.4;
     }
 
     update(time) {
-      const angle = (time * this.speed) + this.offset;
-      // Orbit on XZ plane, slightly tilted
+      const angle = (time * this.speed) + this.angleOffset;
+      
+      // Orbit logic with inclination
       this.mesh.position.x = Math.cos(angle) * this.distance;
       this.mesh.position.z = Math.sin(angle) * this.distance;
-      this.mesh.position.y = Math.sin(angle) * (this.distance * 0.3); // Tilt
+      this.mesh.position.y = Math.sin(angle) * this.distance * Math.sin(this.inclination);
+      
+      // Self rotation
+      this.mesh.rotation.y += 0.01;
     }
   }
 
@@ -369,9 +430,13 @@ export function initSpaceScene(containerId) {
   planet.group.position.z = -5; // Push planet back
   scene.add(planet.group);
 
-  // Moons
-  const moon1 = new Moon(0.3, 6, 0.5, CONFIG.colors.secondary, 0);
-  const moon2 = new Moon(0.2, 5, 0.8, CONFIG.colors.primary, 2);
+  // Moons / Planets
+  // Increased distances to clear the rings (Rings end at 7.5)
+  // Moon 1: Rocky, grey, closer
+  const moon1 = new Moon(0.8, 11, 0.15, 0.8); 
+  // Moon 2: Sandy, further out
+  const moon2 = new Moon(1.2, 16, 0.1, 0.2); 
+  
   scene.add(moon1.mesh);
   scene.add(moon2.mesh);
 
