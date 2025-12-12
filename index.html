@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>504 - Space Gateway</title>
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Import Map for Three.js -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://esm.sh/three@0.157.0"
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <!-- The Container: This is all you need to embed on another page -->
+  <div id="space-scene-container">
+    <div class="overlay-ui">
+      <h1>504</h1>
+      <p>Gateway Timeout</p>
+      <span class="instruction">Orbit engaged. Move cursor to navigate.</span>
+    </div>
+  </div>
+
+  <!-- Load the module -->
+  <script type="module">
+    import { initSpaceScene } from './space-scene.js';
+    
+    // Initialize the scene targeting the specific container
+    initSpaceScene('space-scene-container');
+  </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>

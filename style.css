@@ -1,0 +1,62 @@
+/* Page Reset */
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #050510; /* Fallback color */
+  overflow: hidden;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+/* Container Styles - This makes it embeddable */
+#space-scene-container {
+  position: relative;
+  width: 100%;
+  height: 100vh; /* Adjust this to 500px or 100% depending on embed needs */
+  overflow: hidden;
+  background: radial-gradient(circle at center, #1a0a2e 0%, #050510 100%);
+}
+
+#space-scene-container canvas {
+  display: block;
+  outline: none;
+}
+
+/* UI Overlay */
+.overlay-ui {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none; /* Let clicks pass through to canvas */
+  color: white;
+  z-index: 10;
+  text-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
+  mix-blend-mode: screen;
+}
+
+.overlay-ui h1 {
+  font-size: 0px; /* Hide text visually as we have 3D text, or keep for SEO */
+  margin: 0;
+  opacity: 0;
+}
+
+.overlay-ui p {
+  font-size: 1.2rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  margin-top: 180px; /* Push down below the 3D text */
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 300;
+}
+
+.overlay-ui .instruction {
+  display: block;
+  margin-top: 1rem;
+  font-size: 0.7rem;
+  color: rgba(0, 245, 255, 0.6);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
