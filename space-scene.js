@@ -47,7 +47,7 @@ export function initSpaceScene(containerId) {
 
   // --- Asset Generators (Procedural Textures) ---
 
-  // Generate a ring texture (transparent bands)
+  // Generate a detailed ring texture
   function createRingTexture() {
     const canvas = document.createElement('canvas');
     canvas.width = 1024;
@@ -55,27 +55,99 @@ export function initSpaceScene(containerId) {
     const ctx = canvas.getContext('2d');
     const center = 512;
 
-    // Clear
-    ctx.fillStyle = 'rgba(0,0,0,0)';
-    ctx.fillRect(0,0,1024,1024);
+    ctx.clearRect(0, 0, 1024, 1024);
 
-    // Draw rings
-    for(let i=0; i<150; i++) {
+    // Underlying glow
+    const glow = ctx.createRadialGradient(center, center, 200, center, center, 500);
+    glow.addColorStop(0, 'rgba(0,0,0,0)');
+    glow.addColorStop(0.3, 'rgba(123, 45, 255, 0.05)');
+    glow.addColorStop(0.6, 'rgba(0, 245, 255, 0.05)');
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, 1024, 1024);
+
+    // Draw many detailed rings
+    for(let i = 0; i < 400; i++) {
       const radius = 250 + Math.random() * 260;
-      const width = Math.random() * 5;
-      const alpha = Math.random() * 0.8;
+      const width = Math.random() * 2 + 0.5;
+      const alpha = Math.random() * 0.4 + 0.1;
 
       ctx.beginPath();
       ctx.arc(center, center, radius, 0, Math.PI * 2);
       ctx.lineWidth = width;
-      ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+      
+      // Randomly pick between scene colors (Purple, Cyan, White)
+      const r = Math.random();
+      if (r > 0.6) {
+        ctx.strokeStyle = `rgba(123, 45, 255, ${alpha})`; // Purple
+      } else if (r > 0.3) {
+        ctx.strokeStyle = `rgba(0, 245, 255, ${alpha})`; // Cyan
+      } else {
+        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`; // White
+      }
       ctx.stroke();
     }
+    
+    // Add noise/grain to the rings
+    const imageData = ctx.getImageData(0, 0, 1024, 1024);
+    const data = imageData.data;
+    for(let i=0; i<data.length; i+=4) {
+      if(data[i+3] > 0) { // If pixel exists
+        const noise = (Math.random() - 0.5) * 30;
+        data[i] = Math.min(255, Math.max(0, data[i] + noise));
+        data[i+1] = Math.min(255, Math.max(0, data[i+1] + noise));
+        data[i+2] = Math.min(255, Math.max(0, data[i+2] + noise));
+      }
+    }
+    ctx.putImageData(imageData, 0, 0);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.rotation = -Math.PI / 2; // Fix canvas orientation
     texture.center.set(0.5, 0.5);
     return texture;
+  }
+
+  // Generate a planet surface texture
+  function createPlanetTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    
+    // Dark base
+    ctx.fillStyle = '#0a0a20';
+    ctx.fillRect(0, 0, 1024, 512);
+    
+    // Horizontal bands
+    for(let i=0; i<30; i++) {
+      const y = Math.random() * 512;
+      const height = Math.random() * 100 + 20;
+      ctx.fillStyle = `rgba(20, 10, 60, ${Math.random() * 0.5})`;
+      ctx.fillRect(0, y, 1024, height);
+    }
+
+    // "Storms" and details
+    for (let i = 0; i < 60; i++) {
+      const x = Math.random() * 1024;
+      const y = Math.random() * 512;
+      const r = Math.random() * 80 + 20;
+      
+      const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+      const colorType = Math.random();
+      let colorStr = '255, 255, 255';
+      if(colorType > 0.6) colorStr = '123, 45, 255'; // Purple
+      else if(colorType > 0.3) colorStr = '0, 245, 255'; // Cyan
+      
+      grad.addColorStop(0, `rgba(${colorStr}, ${Math.random() * 0.15})`);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI*2);
+      ctx.fill();
+    }
+    
+    return new THREE.CanvasTexture(canvas);
   }
 
   // --- Object Creation Classes ---
@@ -128,13 +200,13 @@ export function initSpaceScene(containerId) {
       // Main Sphere
       const geometry = new THREE.SphereGeometry(CONFIG.planet.radius, 64, 64);
 
-      // Physically based material for the planet body
+      // Physically based material for the planet body with texture
       const material = new THREE.MeshStandardMaterial({
-        color: 0x1a1a3a, // Dark blue base
-        roughness: 0.7,
-        metalness: 0.1,
+        map: createPlanetTexture(),
+        roughness: 0.6,
+        metalness: 0.2,
         emissive: 0x050510,
-        emissiveIntensity: 1
+        emissiveIntensity: 0.5
       });
 
       this.mesh = new THREE.Mesh(geometry, material);
@@ -183,16 +255,17 @@ export function initSpaceScene(containerId) {
       });
 
       this.ringMesh = new THREE.Mesh(ringGeo, ringMat);
-      this.ringMesh.rotation.x = Math.PI / 2; // Lay flat
-      this.ringMesh.rotation.y = -0.2; // Slight tilt
+      // Increased tilt for better visibility
+      this.ringMesh.rotation.x = Math.PI / 2 + 0.35; 
+      this.ringMesh.rotation.y = -0.1;
       this.group.add(this.ringMesh);
     }
 
     update(time) {
       // Rotate planet slowly
-      this.mesh.rotation.y = time * 0.05;
-      // Rotate rings slowly
-      this.ringMesh.rotation.z = time * 0.02;
+      this.mesh.rotation.y = time * 0.03;
+      // Rotate rings independently and faster
+      this.ringMesh.rotation.z = time * 0.05;
     }
   }
 
